@@ -1,0 +1,21 @@
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      deploy_prod:
+        description: 'Deploy to production?'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy-dev:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/.terragrunt-template.yml
+    secrets: inherit
+    with:
+      environment: dev
+      command: apply
