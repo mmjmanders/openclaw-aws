@@ -14,7 +14,8 @@ on:
 jobs:
   deploy-dev:
     if: github.event_name == 'push'
-    uses: ./.github/workflows/.deploy-template.yml
+    uses: ./.github/workflows/.terragrunt-template.yml
+    secrets: inherit
     with:
       environment: dev
-      secrets: inherit
+      command: apply

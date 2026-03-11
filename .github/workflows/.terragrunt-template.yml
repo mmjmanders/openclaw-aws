@@ -2,9 +2,14 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: 'Environment to deploy to'
+        description: Environment to deploy to
         required: true
         type: string
+      command:
+        description: Terragrunt command to run
+        required: false
+        type: string
+        default: plan
 
 jobs:
   deploy:
@@ -14,7 +19,7 @@ jobs:
       - uses: gruntwork-io/terragrunt-action@v3
         with:
           tg_add_approve: 1
-          tg_command: run --all apply
+          tg_command: run --all ${{ inputs.command }}
           tg_dir: ./environments/${{ inputs.environment }}
         env:
           BACKEND_ACCESS_KEY: ${{ secrets.BACKEND_ACCESS_KEY }}
