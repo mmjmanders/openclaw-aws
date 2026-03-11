@@ -29,10 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: gruntwork-io/terragrunt-action@v3
-        with:
-          tg_command: init --config root.hcl
-      - uses: gruntwork-io/terragrunt-action@v3
-        with:
-          tg_add_approve: 1
-          tg_command: run --all ${{ inputs.command }}
-          tg_dir: ./environments/${{ inputs.environment }}
+      - run: |
+          terragrunt init --config root.hcl
+          cd environments/${{ inputs.environment }}
+          terragrunt run --all ${{ inputs.command }} --non-interactive
