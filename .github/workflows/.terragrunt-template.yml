@@ -12,7 +12,7 @@ on:
         default: plan
 
 jobs:
-  deploy:
+  terragrunt:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
