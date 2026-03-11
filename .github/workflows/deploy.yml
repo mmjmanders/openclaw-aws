@@ -5,11 +5,12 @@ on:
 
   workflow_dispatch:
     inputs:
-      deploy_prod:
-        description: 'Deploy to production?'
+      environment:
+        description: 'Which environment?'
         required: true
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - dev
 
 jobs:
   deploy-dev:
@@ -18,4 +19,12 @@ jobs:
     secrets: inherit
     with:
       environment: dev
+      command: apply
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/.terragrunt-template.yml
+    secrets: inherit
+    with:
+      environment: ${{ github.event.inputs.environment }}
       command: apply
