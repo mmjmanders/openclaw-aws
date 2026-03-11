@@ -1,0 +1,17 @@
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Which environment?'
+        required: true
+        type: choice
+        options:
+          - dev
+
+jobs:
+  teardown:
+    uses: ./.github/workflows/.terragrunt-template.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.environment }}
+      command: destroy
