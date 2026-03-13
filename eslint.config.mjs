@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  ...globalIgnores([".sst/"]),
+  globalIgnores([".sst/"]),
   {
     files: ["**/*.{ts}"],
     plugins: { js },
@@ -12,4 +12,9 @@ export default defineConfig([
     languageOptions: { globals: globals.node },
   },
   tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/triple-slash-reference": "off",
+    },
+  },
 ]);
