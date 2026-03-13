@@ -9,9 +9,9 @@ on:
           - dev
 
 jobs:
-  deploy:
+  remove:
     uses: ./.github/workflows/.sst-template.yml
     secrets: inherit
     with:
       stage: ${{ inputs.stage }}
-      command: deploy
+      command: remove
