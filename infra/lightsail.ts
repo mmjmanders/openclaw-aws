@@ -7,7 +7,7 @@ const allowedPorts = new sst.Secret("LightsailAllowedPorts", "allowed-ports");
 
 const name = `lightsail-${$app.stage}`;
 
-const lightsailKeyPar = new aws.lightsail.KeyPair("KeyPair", {
+const lightsailKeyPair = new aws.lightsail.KeyPair("KeyPair", {
   name: `${name}-keypair`,
   publicKey: publicKey.value,
 });
@@ -17,7 +17,7 @@ export const lightsailInstance = new aws.lightsail.Instance("Instance", {
   blueprintId: "openclaw_ls_1_0",
   bundleId,
   availabilityZone: `${region}a`,
-  keyPairName: lightsailKeyPar.name,
+  keyPairName: lightsailKeyPair.name,
   userData: `echo "Enabling Amazon Bedrock..."
 curl -s https://d25b4yjpexuuj4.cloudfront.net/scripts/lightsail/setup-lightsail-openclaw-bedrock-role.sh | bash -s -- ${name}-instance ${region}`,
 });
