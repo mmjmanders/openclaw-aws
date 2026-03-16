@@ -16,34 +16,6 @@ const lightsailKeyPair = new aws.lightsail.KeyPair("KeyPair", {
   publicKey: publicKey.value,
 });
 
-const instanceRole = new aws.iam.Role("LightsailInstanceRole", {
-  name: `${name}-instance-ssm-role`,
-  assumeRolePolicy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Effect: "Allow",
-        Principal: { Service: "lightsail.amazonaws.com" },
-        Action: "sts:AssumeRole",
-      },
-    ],
-  }),
-});
-
-const rolePolicy = new aws.iam.RolePolicy("LightsailSSMReadPolicy", {
-  role: instanceRole.name,
-  policy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Effect: "Allow",
-        Action: ["ssm:GetParameter"],
-        Resource: `arn:aws:ssm:${region}:*:parameter/${name}/*`,
-      },
-    ],
-  }),
-});
-
 export const lightsailInstance = new aws.lightsail.Instance(
   "LightsailInstance",
   {
@@ -74,7 +46,6 @@ export AWS_DEFAULT_REGION=${region}
 curl -s https://d25b4yjpexuuj4.cloudfront.net/scripts/lightsail/setup-lightsail-openclaw-bedrock-role.sh | bash -s -- ${name}-instance ${region}
   `,
   },
-  { dependsOn: [instanceRole, rolePolicy] },
 );
 
 new aws.lightsail.InstancePublicPorts("PublicPorts", {
@@ -106,6 +77,23 @@ const instanceId = new command.local.Command(
     dependsOn: [lightsailInstance],
   },
 ).stdout.apply((stdout) => stdout.trim().split("/")[1]);
+
+new aws.iam.RolePolicy(
+  "LightsailSSMReadPolicy",
+  pulumi.all([accountId, instanceId]).apply(([acct, iid]) => ({
+    role: `AmazonLightsailInstance/${iid}`,
+    policy: JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: ["ssm:GetParameter"],
+          Resource: `arn:aws:ssm:${region}:${acct}:parameter/${name}/*`,
+        },
+      ],
+    }),
+  })),
+);
 
 const policy = new aws.iam.Policy("LightsailPolicy", {
   name: `${name}-policy`,
