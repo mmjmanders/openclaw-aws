@@ -9,19 +9,50 @@ const allowedCidrs = new sst.Secret("LightsailAllowedCidrs", "allowed-cidrs");
 const allowedPorts = new sst.Secret("LightsailAllowedPorts", "allowed-ports");
 
 const name = `lightsail-${$app.stage}`;
+const accountId = aws.getCallerIdentityOutput().accountId;
 
 const lightsailKeyPair = new aws.lightsail.KeyPair("KeyPair", {
   name: `${name}-keypair`,
   publicKey: publicKey.value,
 });
 
-export const lightsailInstance = new aws.lightsail.Instance("Instance", {
-  name: `${name}-instance`,
-  blueprintId: "openclaw_ls_1_0",
-  bundleId,
-  availabilityZone: `${region}a`,
-  keyPairName: lightsailKeyPair.name,
-  userData: `
+const instanceRole = new aws.iam.Role("LightsailInstanceRole", {
+  name: `${name}-instance-ssm-role`,
+  assumeRolePolicy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: { Service: "lightsail.amazonaws.com" },
+        Action: "sts:AssumeRole",
+      },
+    ],
+  }),
+});
+
+const rolePolicy = new aws.iam.RolePolicy("LightsailSSMReadPolicy", {
+  role: instanceRole.name,
+  policy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: ["ssm:GetParameter"],
+        Resource: `arn:aws:ssm:${region}:*:parameter/${name}/*`,
+      },
+    ],
+  }),
+});
+
+export const lightsailInstance = new aws.lightsail.Instance(
+  "LightsailInstance",
+  {
+    name: `${name}-instance`,
+    blueprintId: "openclaw_ls_1_0",
+    bundleId,
+    availabilityZone: `${region}a`,
+    keyPairName: lightsailKeyPair.name,
+    userData: `
 until aws ssm get-parameter --region ${region} --name /${name}/access-key-id > /dev/null 2>&1; do
   echo "Waiting for credentials in SSM..."
   sleep 10
@@ -42,7 +73,9 @@ export AWS_DEFAULT_REGION=${region}
 
 curl -s https://d25b4yjpexuuj4.cloudfront.net/scripts/lightsail/setup-lightsail-openclaw-bedrock-role.sh | bash -s -- ${name}-instance ${region}
   `,
-});
+  },
+  { dependsOn: [instanceRole, rolePolicy] },
+);
 
 new aws.lightsail.InstancePublicPorts("PublicPorts", {
   instanceName: lightsailInstance.name,
@@ -59,7 +92,6 @@ new aws.lightsail.InstancePublicPorts("PublicPorts", {
   ),
 });
 
-const accountId = aws.getCallerIdentityOutput().accountId;
 const instanceId = new command.local.Command(
   "GetInstance",
   {
@@ -127,32 +159,4 @@ new aws.ssm.Parameter("LightsailSecretAccessKey", {
   name: `/${name}/secret-access-key`,
   type: "SecureString",
   value: accessKey.secret,
-});
-
-const instanceRole = new aws.iam.Role("LightsailInstanceRole", {
-  name: `${name}-instance-ssm-role`,
-  assumeRolePolicy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Effect: "Allow",
-        Principal: { Service: "lightsail.amazonaws.com" },
-        Action: "sts:AssumeRole",
-      },
-    ],
-  }),
-});
-
-new aws.iam.RolePolicy("LightsailSSMReadPolicy", {
-  role: instanceRole.name,
-  policy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Effect: "Allow",
-        Action: ["ssm:GetParameter"],
-        Resource: `arn:aws:ssm:${region}:*:parameter/${name}/*`,
-      },
-    ],
-  }),
 });
